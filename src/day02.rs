@@ -1,5 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[aoc_generator(day2)]
 fn parse_input(input: &str) -> Vec<String> {
@@ -40,16 +40,31 @@ fn part1(ids: &[String]) -> usize {
     contains_exactly_two_of_any_letter_count * contains_exactly_three_of_any_letter_count
 }
 
-// #[aoc(day2, part2)]
-// fn part2(input: &i32) -> i32 {
-//     unimplemented!()
-// }
+#[aoc(day2, part2)]
+fn part2(ids: &[String]) -> String {
+    let mut prefixes_and_suffixes: HashSet<(&str, &str)> = HashSet::new();
+
+    for id in ids.iter() {
+        for i in 0..id.len() {
+            if let Some((prefix, suffix)) = prefixes_and_suffixes.get(&(&id[..i], &id[i + 1..])) {
+                let mut output = prefix.to_string();
+                output.push_str(suffix);
+
+                return output;
+            } else {
+                prefixes_and_suffixes.insert((&id[..i], &id[i + 1..]));
+            }
+        }
+    }
+
+    unreachable!()
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    static TEST_INPUT: &str = r"abcdef
+    static TEST_INPUT_1: &str = r"abcdef
 bababc
 abbcde
 abcccd
@@ -57,13 +72,21 @@ aabcdd
 abcdee
 ababab";
 
+    static TEST_INPUT_2: &str = r"abcde
+fghij
+klmno
+pqrst
+fguij
+axcye
+wvxyz";
+
     #[test]
     fn part1_example() {
-        assert_eq!(part1(&parse_input(TEST_INPUT)), 12);
+        assert_eq!(part1(&parse_input(TEST_INPUT_1)), 12);
     }
 
-    // #[test]
-    // fn part2_example() {
-    //     assert_eq!(part2(&parse_input(TEST_INPUT)), 31);
-    // }
+    #[test]
+    fn part2_example() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_2)), "fgij".to_string());
+    }
 }
