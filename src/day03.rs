@@ -33,70 +33,100 @@ fn parse_input(input: &str) -> HashMap<usize, Claim> {
     parser.parse(input).unwrap().into_iter().collect()
 }
 
-#[aoc(day3, part1)]
-fn part1(claims: &HashMap<usize, Claim>) -> usize {
-    let (x_coordinates, left_edges, right_edges) = claims.iter().fold(
-        (BTreeSet::new(), BTreeMap::new(), BTreeMap::new()),
-        |(mut x_coordinates, mut left_edges, mut right_edges), (id, claim)| {
-            x_coordinates.insert(claim.left);
-            x_coordinates.insert(claim.left + claim.width);
+#[derive(Default)]
+struct Intervals {
+    edges: BTreeSet<usize>,
+    from_edges: BTreeMap<usize, HashSet<usize>>,
+    to_edges: BTreeMap<usize, HashSet<usize>>,
+}
 
-            (*left_edges.entry(claim.left).or_insert(HashSet::new())).insert(*id);
+fn horizontal_intervals(claims: &HashMap<usize, Claim>) -> Intervals {
+    claims.iter().fold(
+        Intervals::default(),
+        |mut horizontal_intervals, (id, claim)| {
+            horizontal_intervals.edges.insert(claim.left);
+            horizontal_intervals.edges.insert(claim.left + claim.width);
 
-            (*right_edges
-                .entry(claim.left + claim.width)
-                .or_insert(HashSet::new()))
+            (*horizontal_intervals
+                .from_edges
+                .entry(claim.left)
+                .or_default())
             .insert(*id);
 
-            (x_coordinates, left_edges, right_edges)
-        },
-    );
+            (*horizontal_intervals
+                .to_edges
+                .entry(claim.left + claim.width)
+                .or_default())
+            .insert(*id);
 
-    let mut top_edges: BTreeMap<usize, HashSet<usize>> = BTreeMap::new();
-    let mut bottom_edges: BTreeMap<usize, HashSet<usize>> = BTreeMap::new();
-    let mut y_coordinates: BTreeSet<usize> = BTreeSet::new();
+            horizontal_intervals
+        },
+    )
+}
+
+#[aoc(day3, part1)]
+fn part1(claims: &HashMap<usize, Claim>) -> usize {
+    let horizontal_intervals = horizontal_intervals(claims);
+    let mut vertical_intervals = Intervals::default();
 
     let mut overlap_height = 0usize;
     let mut previous_x = 0usize;
 
     let mut result = 0;
 
-    for x in x_coordinates {
+    for x in horizontal_intervals.edges {
         result += overlap_height * (x - previous_x);
         previous_x = x;
 
-        for claim_id in left_edges.get(&x).into_iter().flatten() {
+        for claim_id in horizontal_intervals
+            .from_edges
+            .get(&x)
+            .into_iter()
+            .flatten()
+        {
             let claim = claims.get(claim_id).unwrap();
 
-            (*top_edges.entry(claim.top).or_default()).insert(*claim_id);
-            (*bottom_edges.entry(claim.top + claim.height).or_default()).insert(*claim_id);
+            (*vertical_intervals.from_edges.entry(claim.top).or_default()).insert(*claim_id);
+            (*vertical_intervals
+                .to_edges
+                .entry(claim.top + claim.height)
+                .or_default())
+            .insert(*claim_id);
 
-            y_coordinates.insert(claim.top);
-            y_coordinates.insert(claim.top + claim.height);
+            vertical_intervals.edges.insert(claim.top);
+            vertical_intervals.edges.insert(claim.top + claim.height);
         }
 
-        for claim_id in right_edges.get(&x).into_iter().flatten() {
+        for claim_id in horizontal_intervals.to_edges.get(&x).into_iter().flatten() {
             let claim = claims.get(claim_id).unwrap();
 
-            let top_edges_at_y = top_edges.get_mut(&claim.top).unwrap();
-            top_edges_at_y.remove(claim_id);
+            let top_edges = vertical_intervals.from_edges.get_mut(&claim.top).unwrap();
+            top_edges.remove(claim_id);
 
-            if top_edges_at_y.is_empty() {
-                top_edges.remove(&claim.top);
+            if top_edges.is_empty() {
+                vertical_intervals.from_edges.remove(&claim.top);
 
-                if !bottom_edges.contains_key(&claim.top) {
-                    y_coordinates.remove(&claim.top);
+                if !vertical_intervals.to_edges.contains_key(&claim.top) {
+                    vertical_intervals.edges.remove(&claim.top);
                 }
             }
 
-            let bottom_edges_at_y = bottom_edges.get_mut(&(claim.top + claim.height)).unwrap();
-            bottom_edges_at_y.remove(claim_id);
+            let bottom_edges = vertical_intervals
+                .to_edges
+                .get_mut(&(claim.top + claim.height))
+                .unwrap();
+            bottom_edges.remove(claim_id);
 
-            if bottom_edges_at_y.is_empty() {
-                bottom_edges.remove(&(claim.top + claim.height));
+            if bottom_edges.is_empty() {
+                vertical_intervals
+                    .to_edges
+                    .remove(&(claim.top + claim.height));
 
-                if !top_edges.contains_key(&(claim.top + claim.height)) {
-                    y_coordinates.remove(&(claim.top + claim.height));
+                if !vertical_intervals
+                    .from_edges
+                    .contains_key(&(claim.top + claim.height))
+                {
+                    vertical_intervals.edges.remove(&(claim.top + claim.height));
                 }
             }
         }
@@ -105,19 +135,19 @@ fn part1(claims: &HashMap<usize, Claim>) -> usize {
         let mut claim_count = 0;
         let mut previous_y = 0;
 
-        for y in y_coordinates.iter() {
+        for y in vertical_intervals.edges.iter() {
             if claim_count > 1 {
                 overlap_height += y - previous_y;
             }
 
             previous_y = *y;
 
-            if let Some(top_edges_at_y) = top_edges.get(y) {
-                claim_count += top_edges_at_y.len();
+            if let Some(top_edges) = vertical_intervals.from_edges.get(y) {
+                claim_count += top_edges.len();
             }
 
-            if let Some(bottom_edges_at_y) = bottom_edges.get(y) {
-                claim_count -= bottom_edges_at_y.len();
+            if let Some(bottom_edges) = vertical_intervals.to_edges.get(y) {
+                claim_count -= bottom_edges.len();
             }
         }
     }
@@ -127,7 +157,89 @@ fn part1(claims: &HashMap<usize, Claim>) -> usize {
 
 #[aoc(day3, part2)]
 fn part2(claims: &HashMap<usize, Claim>) -> usize {
-    unimplemented!()
+    let mut non_overlapped_claims_ids: HashSet<_> = claims.keys().cloned().collect();
+
+    let horizontal_intervals = horizontal_intervals(claims);
+    let mut vertical_intervals = Intervals::default();
+
+    for x in horizontal_intervals.edges {
+        for claim_id in horizontal_intervals
+            .from_edges
+            .get(&x)
+            .into_iter()
+            .flatten()
+        {
+            let claim = claims.get(claim_id).unwrap();
+
+            (*vertical_intervals.from_edges.entry(claim.top).or_default()).insert(*claim_id);
+            (*vertical_intervals
+                .to_edges
+                .entry(claim.top + claim.height)
+                .or_default())
+            .insert(*claim_id);
+
+            vertical_intervals.edges.insert(claim.top);
+            vertical_intervals.edges.insert(claim.top + claim.height);
+        }
+
+        for claim_id in horizontal_intervals.to_edges.get(&x).into_iter().flatten() {
+            let claim = claims.get(claim_id).unwrap();
+
+            let top_edges = vertical_intervals.from_edges.get_mut(&claim.top).unwrap();
+            top_edges.remove(claim_id);
+
+            if top_edges.is_empty() {
+                vertical_intervals.from_edges.remove(&claim.top);
+
+                if !vertical_intervals.to_edges.contains_key(&claim.top) {
+                    vertical_intervals.edges.remove(&claim.top);
+                }
+            }
+
+            let bottom_edges = vertical_intervals
+                .to_edges
+                .get_mut(&(claim.top + claim.height))
+                .unwrap();
+            bottom_edges.remove(claim_id);
+
+            if bottom_edges.is_empty() {
+                vertical_intervals
+                    .to_edges
+                    .remove(&(claim.top + claim.height));
+
+                if !vertical_intervals
+                    .from_edges
+                    .contains_key(&(claim.top + claim.height))
+                {
+                    vertical_intervals.edges.remove(&(claim.top + claim.height));
+                }
+            }
+        }
+
+        let mut current_claims_ids = HashSet::new();
+
+        for y in vertical_intervals.edges.iter() {
+            if let Some(top_edges) = vertical_intervals.from_edges.get(y) {
+                for id in top_edges {
+                    current_claims_ids.insert(*id);
+                }
+            }
+
+            if let Some(bottom_edges) = vertical_intervals.to_edges.get(y) {
+                for id in bottom_edges {
+                    current_claims_ids.remove(id);
+                }
+            }
+
+            if current_claims_ids.len() > 1 {
+                for id in current_claims_ids.iter() {
+                    non_overlapped_claims_ids.remove(id);
+                }
+            }
+        }
+    }
+
+    non_overlapped_claims_ids.into_iter().next().unwrap()
 }
 
 #[cfg(test)]
