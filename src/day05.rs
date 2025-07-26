@@ -1,25 +1,29 @@
 use aoc_runner_derive::aoc;
 use std::collections::HashMap;
 
+fn add_unit(polymer: &mut Vec<char>, unit: char) {
+    if polymer.is_empty() {
+        polymer.push(unit);
+    } else {
+        let last = polymer.last().unwrap();
+
+        if last.eq_ignore_ascii_case(&unit)
+            && (last.is_lowercase() && unit.is_uppercase()
+                || last.is_uppercase() && unit.is_lowercase())
+        {
+            polymer.pop();
+        } else {
+            polymer.push(unit);
+        }
+    }
+}
+
 #[aoc(day5, part1)]
 fn part1(polymer: &str) -> usize {
     let mut stack = Vec::new();
 
     for unit in polymer.chars() {
-        if stack.is_empty() {
-            stack.push(unit);
-        } else {
-            let last = stack.last().unwrap();
-
-            if last.eq_ignore_ascii_case(&unit)
-                && (last.is_lowercase() && unit.is_uppercase()
-                    || last.is_uppercase() && unit.is_lowercase())
-            {
-                stack.pop();
-            } else {
-                stack.push(unit);
-            }
-        }
+        add_unit(&mut stack, unit);
     }
 
     stack.len()
@@ -39,20 +43,7 @@ fn part2(polymer: &str) -> usize {
                 continue;
             }
 
-            if stack.is_empty() {
-                stack.push(unit);
-            } else {
-                let last = stack.last().unwrap();
-
-                if last.eq_ignore_ascii_case(&unit)
-                    && (last.is_lowercase() && unit.is_uppercase()
-                        || last.is_uppercase() && unit.is_lowercase())
-                {
-                    stack.pop();
-                } else {
-                    stack.push(unit);
-                }
-            }
+            add_unit(stack, unit);
         }
     }
 
