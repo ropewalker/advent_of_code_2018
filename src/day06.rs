@@ -12,9 +12,8 @@ fn manhattan_distance(coordinates1: &(i32, i32), coordinates2: &(i32, i32)) -> i
     (coordinates1.0 - coordinates2.0).abs() + (coordinates1.1 - coordinates2.1).abs()
 }
 
-#[aoc(day6, part1)]
-fn part1(coordinates: &[(i32, i32)]) -> usize {
-    let (x_min, x_max, y_min, y_max) = coordinates.iter().fold(
+fn boundaries(coordinates: &[(i32, i32)]) -> (i32, i32, i32, i32) {
+    coordinates.iter().fold(
         (
             coordinates[0].0,
             coordinates[0].0,
@@ -29,7 +28,12 @@ fn part1(coordinates: &[(i32, i32)]) -> usize {
                 i32::max(y_max, *y),
             )
         },
-    );
+    )
+}
+
+#[aoc(day6, part1)]
+fn part1(coordinates: &[(i32, i32)]) -> usize {
+    let (x_min, x_max, y_min, y_max) = boundaries(coordinates);
 
     let mut areas = vec![Some(0usize); coordinates.len()];
     let mut visited: HashMap<(i32, i32), Option<usize>> =
@@ -76,22 +80,7 @@ fn part1(coordinates: &[(i32, i32)]) -> usize {
 }
 
 fn safe_region_area(coordinates: &[(i32, i32)], total_distance_threshold: i32) -> usize {
-    let (x_min, x_max, y_min, y_max) = coordinates.iter().fold(
-        (
-            coordinates[0].0,
-            coordinates[0].0,
-            coordinates[0].1,
-            coordinates[0].1,
-        ),
-        |(x_min, x_max, y_min, y_max), (x, y)| {
-            (
-                i32::min(x_min, *x),
-                i32::max(x_max, *x),
-                i32::min(y_min, *y),
-                i32::max(y_max, *y),
-            )
-        },
-    );
+    let (x_min, x_max, y_min, y_max) = boundaries(coordinates);
 
     let mut area = 0;
 
