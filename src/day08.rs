@@ -7,7 +7,30 @@ fn parse_input(input: &str) -> Vec<usize> {
     parser.parse(input).unwrap()
 }
 
-fn descend(node: &[usize]) -> (usize, &[usize]) {
+fn sum_metadata_entries(node: &[usize]) -> (usize, &[usize]) {
+    let child_nodes_qty = node[0];
+    let metadata_entries_qty = node[1];
+
+    let mut metadata_sum = 0;
+    let mut tail = &node[2..];
+
+    for _ in 0..child_nodes_qty {
+        let (sub_sum, remaining_numbers) = sum_metadata_entries(tail);
+        metadata_sum += sub_sum;
+        tail = remaining_numbers;
+    }
+
+    metadata_sum += tail[0..metadata_entries_qty].iter().sum::<usize>();
+
+    (metadata_sum, &tail[metadata_entries_qty..])
+}
+
+#[aoc(day8, part1)]
+fn part1(numbers: &[usize]) -> usize {
+    sum_metadata_entries(numbers).0
+}
+
+fn node_value(node: &[usize]) -> (usize, &[usize]) {
     let child_nodes_qty = node[0];
     let metadata_entries_qty = node[1];
 
@@ -17,24 +40,30 @@ fn descend(node: &[usize]) -> (usize, &[usize]) {
             &node[2 + metadata_entries_qty..],
         )
     } else {
-        let mut metadata_sum = 0;
+        let mut child_nodes_values = Vec::new();
         let mut tail = &node[2..];
+        let mut value = 0;
 
         for _ in 0..child_nodes_qty {
-            let (sub_sum, remaining_numbers) = descend(tail);
-            metadata_sum += sub_sum;
+            let (sub_value, remaining_numbers) = node_value(tail);
+
+            child_nodes_values.push(sub_value);
             tail = remaining_numbers;
         }
 
-        metadata_sum += tail[0..metadata_entries_qty].iter().sum::<usize>();
+        for metadata_entry in tail[0..metadata_entries_qty].iter() {
+            if *metadata_entry > 0 && *metadata_entry <= child_nodes_qty {
+                value += child_nodes_values[*metadata_entry - 1];
+            }
+        }
 
-        (metadata_sum, &tail[metadata_entries_qty..])
+        (value, &tail[metadata_entries_qty..])
     }
 }
 
-#[aoc(day8, part1)]
-fn part1(numbers: &[usize]) -> usize {
-    descend(numbers).0
+#[aoc(day8, part2)]
+fn part2(numbers: &[usize]) -> usize {
+    node_value(numbers).0
 }
 
 #[cfg(test)]
@@ -46,5 +75,10 @@ mod tests {
     #[test]
     fn part1_example() {
         assert_eq!(part1(&parse_input(TEST_INPUT)), 138);
+    }
+
+    #[test]
+    fn part2_example() {
+        assert_eq!(part2(&parse_input(TEST_INPUT)), 66);
     }
 }
