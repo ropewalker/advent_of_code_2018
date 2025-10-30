@@ -37,8 +37,8 @@ enum Event {
 
 #[aoc_generator(day4)]
 fn parse_input(input: &str) -> Vec<(Timestamp, Event)> {
-    use aoc_parse::{parser, prelude::*};
     use Event::*;
+    use aoc_parse::{parser, prelude::*};
 
     let timestamp = parser!(
         "[" year:usize "-" month:usize "-" day:usize " " hour:usize ":" minute:usize "] " =>
