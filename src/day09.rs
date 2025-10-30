@@ -19,10 +19,10 @@ fn winning_score(num_players: usize, last_marble_score: usize) -> usize {
             let new_position = (current_position + 1) % marbles_in_circle + 1;
 
             positions.iter_mut().for_each(|position| {
-                if let Some(position) = position {
-                    if *position >= new_position {
-                        *position += 1;
-                    }
+                if let Some(position) = position
+                    && *position >= new_position
+                {
+                    *position += 1;
                 }
             });
 
@@ -52,10 +52,10 @@ fn winning_score(num_players: usize, last_marble_score: usize) -> usize {
             marbles_in_circle -= 1;
 
             positions.iter_mut().for_each(|position| {
-                if let Some(position) = position {
-                    if *position > removed_position {
-                        *position -= 1;
-                    }
+                if let Some(position) = position
+                    && *position > removed_position
+                {
+                    *position -= 1;
                 }
             });
 

@@ -48,17 +48,16 @@ fn part1(coordinates: &[(i32, i32)]) -> usize {
         let (closest_coordinate_index, (x, y)) = queue.pop_front().unwrap();
 
         if visited.contains_key(&(x, y)) {
-            if let Some(prev_closest_coordinate_index) = visited.get(&(x, y)).unwrap() {
-                if closest_coordinate_index != *prev_closest_coordinate_index
-                    && manhattan_distance(&(x, y), &coordinates[closest_coordinate_index])
-                        == manhattan_distance(&(x, y), &coordinates[*prev_closest_coordinate_index])
-                {
-                    if let Some(area) = areas[*prev_closest_coordinate_index] {
-                        areas[*prev_closest_coordinate_index] = Some(area - 1);
-                    }
-
-                    visited.insert((x, y), None);
+            if let Some(prev_closest_coordinate_index) = visited.get(&(x, y)).unwrap()
+                && closest_coordinate_index != *prev_closest_coordinate_index
+                && manhattan_distance(&(x, y), &coordinates[closest_coordinate_index])
+                    == manhattan_distance(&(x, y), &coordinates[*prev_closest_coordinate_index])
+            {
+                if let Some(area) = areas[*prev_closest_coordinate_index] {
+                    areas[*prev_closest_coordinate_index] = Some(area - 1);
                 }
+
+                visited.insert((x, y), None);
             }
         } else if x < x_min || x > x_max || y < y_min || y > y_max {
             areas[closest_coordinate_index] = None;
