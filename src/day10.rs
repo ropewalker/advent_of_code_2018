@@ -15,80 +15,7 @@ fn parse_input(input: &str) -> Vec<Point> {
     parser.parse(input).unwrap()
 }
 
-#[aoc(day10, part1)]
-fn part1(points: &[Point]) -> String {
-    let mut positions: Vec<(i32, i32)> = points.iter().map(|point| point.position).collect();
-    let velocities: Vec<(i32, i32)> = points.iter().map(|point| point.velocity).collect();
-
-    let mut min_x = positions.iter().map(|position| position.0).min().unwrap();
-    let mut max_x = positions.iter().map(|position| position.0).max().unwrap();
-    let mut min_y = positions.iter().map(|position| position.1).min().unwrap();
-    let mut max_y = positions.iter().map(|position| position.1).max().unwrap();
-
-    let mut width = max_x - min_x + 1;
-    let mut height = max_y - min_y + 1;
-
-    loop {
-        let new_positions: Vec<(i32, i32)> = positions
-            .iter()
-            .zip(velocities.iter())
-            .map(|(position, velocity)| (position.0 + velocity.0, position.1 + velocity.1))
-            .collect();
-
-        let new_min_x = new_positions
-            .iter()
-            .map(|position| position.0)
-            .min()
-            .unwrap();
-        let new_max_x = new_positions
-            .iter()
-            .map(|position| position.0)
-            .max()
-            .unwrap();
-        let new_min_y = new_positions
-            .iter()
-            .map(|position| position.1)
-            .min()
-            .unwrap();
-        let new_max_y = new_positions
-            .iter()
-            .map(|position| position.1)
-            .max()
-            .unwrap();
-
-        let new_width = new_max_x - new_min_x + 1;
-        let new_height = new_max_y - new_min_y + 1;
-
-        if new_width >= width && new_height >= height {
-            let mut message = String::new();
-
-            for y in min_y..=max_y {
-                message.push('\n');
-
-                for x in min_x..=max_x {
-                    if positions.contains(&(x, y)) {
-                        message.push('#');
-                    } else {
-                        message.push('.');
-                    }
-                }
-            }
-
-            return message;
-        } else {
-            width = new_width;
-            height = new_height;
-            positions = new_positions;
-            min_x = new_min_x;
-            max_x = new_max_x;
-            min_y = new_min_y;
-            max_y = new_max_y;
-        }
-    }
-}
-
-#[aoc(day10, part2)]
-fn part2(points: &[Point]) -> usize {
+fn message_and_time(points: &[Point]) -> (String, usize) {
     let mut positions: Vec<(i32, i32)> = points.iter().map(|point| point.position).collect();
     let velocities: Vec<(i32, i32)> = points.iter().map(|point| point.velocity).collect();
 
@@ -148,7 +75,7 @@ fn part2(points: &[Point]) -> usize {
                 }
             }
 
-            return seconds_count;
+            return (message, seconds_count);
         } else {
             width = new_width;
             height = new_height;
@@ -160,6 +87,16 @@ fn part2(points: &[Point]) -> usize {
             seconds_count += 1;
         }
     }
+}
+
+#[aoc(day10, part1)]
+fn part1(points: &[Point]) -> String {
+    message_and_time(points).0
+}
+
+#[aoc(day10, part2)]
+fn part2(points: &[Point]) -> usize {
+    message_and_time(points).1
 }
 
 #[cfg(test)]
