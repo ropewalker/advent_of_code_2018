@@ -1,4 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use std::collections::VecDeque;
 
 #[aoc_generator(day9)]
 fn parse_input(input: &str) -> (usize, usize) {
@@ -10,56 +11,17 @@ fn parse_input(input: &str) -> (usize, usize) {
 fn winning_score(num_players: usize, last_marble_score: usize) -> usize {
     let mut scores = vec![0usize; num_players];
 
-    let mut positions = vec![Some(0)];
-    let mut marbles_in_circle = 1usize;
-    let mut current_position = 0usize;
+    let mut marbles = VecDeque::from([0]);
 
     for turn in 1..=last_marble_score {
         if turn % 23 != 0 {
-            let new_position = (current_position + 1) % marbles_in_circle + 1;
-
-            positions.iter_mut().for_each(|position| {
-                if let Some(position) = position
-                    && *position >= new_position
-                {
-                    *position += 1;
-                }
-            });
-
-            positions.push(Some(new_position));
-            marbles_in_circle += 1;
-
-            current_position = new_position;
+            marbles.rotate_left(1);
+            marbles.push_back(turn);
         } else {
             scores[turn % num_players] += turn;
-            positions.push(None);
-
-            let (marble_score, removed_position) = positions
-                .iter()
-                .enumerate()
-                .find(|(_, position)| {
-                    position.is_some()
-                        && position.unwrap()
-                            == (current_position + marbles_in_circle - 7) % marbles_in_circle
-                })
-                .unwrap();
-
-            scores[turn % num_players] += marble_score;
-
-            let removed_position = removed_position.to_owned().unwrap();
-
-            positions[marble_score] = None;
-            marbles_in_circle -= 1;
-
-            positions.iter_mut().for_each(|position| {
-                if let Some(position) = position
-                    && *position > removed_position
-                {
-                    *position -= 1;
-                }
-            });
-
-            current_position = removed_position;
+            marbles.rotate_right(7);
+            scores[turn % num_players] += marbles.pop_back().unwrap();
+            marbles.rotate_left(1);
         }
     }
 
