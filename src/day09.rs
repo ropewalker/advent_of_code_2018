@@ -96,28 +96,4 @@ mod tests {
         assert_eq!(part1(&parse_input(TEST_INPUT_4)), 54_718);
         assert_eq!(part1(&parse_input(TEST_INPUT_5)), 37_305);
     }
-
-    fn part1_example_0() {
-        assert_eq!(part1(&parse_input(TEST_INPUT_0)), 32);
-    }
-
-    fn part1_example_1() {
-        assert_eq!(part1(&parse_input(TEST_INPUT_1)), 8_317);
-    }
-
-    fn part1_example_2() {
-        assert_eq!(part1(&parse_input(TEST_INPUT_2)), 146_373);
-    }
-
-    fn part1_example_3() {
-        assert_eq!(part1(&parse_input(TEST_INPUT_3)), 2_764);
-    }
-
-    fn part1_example_4() {
-        assert_eq!(part1(&parse_input(TEST_INPUT_4)), 54_718);
-    }
-
-    fn part1_example_5() {
-        assert_eq!(part1(&parse_input(TEST_INPUT_5)), 37_305);
-    }
 }
