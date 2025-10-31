@@ -60,6 +60,112 @@ fn power_level(x: i32, y: i32, grid_serial_number: i32) -> i32 {
     (rack_id * y + grid_serial_number) * rack_id / 100 % 10 - 5
 }
 
+#[aoc(day11, part2)]
+fn part2(grid_serial_number: &i32) -> String {
+    let mut grid: Vec<Vec<Vec<i32>>> = Vec::with_capacity(GRID_SIZE);
+
+    for y in 1..=GRID_SIZE {
+        let mut total_powers_by_x = Vec::with_capacity(GRID_SIZE);
+
+        for x in 1..=GRID_SIZE {
+            total_powers_by_x.push(vec![power_level(x as i32, y as i32, *grid_serial_number)])
+        }
+
+        grid.push(total_powers_by_x);
+    }
+
+    let (x_minus_one, y_minus_one, mut max_total_power) = grid
+        .iter()
+        .enumerate()
+        .flat_map(|(y, total_powers_by_x)| {
+            total_powers_by_x.iter().enumerate().map(
+                move |(x, total_powers_by_powers_of_two_square_size)| {
+                    (x, y, total_powers_by_powers_of_two_square_size[0])
+                },
+            )
+        })
+        .max_by(|(_, _, power_level_1), (_, _, power_level_2)| power_level_1.cmp(power_level_2))
+        .unwrap();
+
+    let mut identifier = (x_minus_one + 1, y_minus_one + 1, 1);
+
+    for square_size in 2..=GRID_SIZE {
+        for y in 1..=GRID_SIZE {
+            if y + square_size - 1 > GRID_SIZE {
+                break;
+            }
+
+            for x in 1..=GRID_SIZE {
+                if x + square_size - 1 > GRID_SIZE {
+                    break;
+                }
+
+                if square_size.is_power_of_two() {
+                    let total_power = grid[y - 1][x - 1][(square_size / 2).ilog2() as usize]
+                        + grid[y - 1][x - 1 + square_size / 2][(square_size / 2).ilog2() as usize]
+                        + grid[y - 1 + square_size / 2][x - 1][(square_size / 2).ilog2() as usize]
+                        + grid[y - 1 + square_size / 2][x - 1 + square_size / 2]
+                            [(square_size / 2).ilog2() as usize];
+
+                    grid[y - 1][x - 1].push(total_power);
+
+                    if total_power > max_total_power {
+                        max_total_power = total_power;
+                        identifier = (x, y, square_size);
+                    }
+                } else {
+                    let mut covered_square_size = square_size.next_power_of_two() / 2;
+                    let mut total_power = grid[y - 1][x - 1][covered_square_size.ilog2() as usize];
+
+                    while covered_square_size < square_size {
+                        let remainder = square_size - covered_square_size;
+
+                        let previous_power_of_two = if remainder.is_power_of_two() {
+                            remainder
+                        } else {
+                            remainder.next_power_of_two() / 2
+                        };
+
+                        let (mut smaller_square_x, mut smaller_square_y) =
+                            (x + covered_square_size, y);
+
+                        while smaller_square_y < y + covered_square_size {
+                            total_power += grid[smaller_square_y - 1][smaller_square_x - 1]
+                                [previous_power_of_two.ilog2() as usize];
+
+                            smaller_square_y += previous_power_of_two;
+                        }
+
+                        (smaller_square_x, smaller_square_y) = (x, y + covered_square_size);
+
+                        while smaller_square_x < x + covered_square_size {
+                            total_power += grid[smaller_square_y - 1][smaller_square_x - 1]
+                                [previous_power_of_two.ilog2() as usize];
+
+                            smaller_square_x += previous_power_of_two;
+                        }
+
+                        (smaller_square_x, smaller_square_y) =
+                            (x + covered_square_size, y + covered_square_size);
+
+                        total_power += grid[smaller_square_y - 1][smaller_square_x - 1]
+                            [previous_power_of_two.ilog2() as usize];
+
+                        covered_square_size += previous_power_of_two;
+                    }
+
+                    if total_power > max_total_power {
+                        max_total_power = total_power;
+                        identifier = (x, y, square_size);
+                    }
+                }
+            }
+        }
+    }
+
+    format!("{},{},{}", identifier.0, identifier.1, identifier.2)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,5 +196,15 @@ mod tests {
     #[test]
     fn part1_example5() {
         assert_eq!(part1(&parse_input(TEST_INPUT_2)), "21,61");
+    }
+
+    #[test]
+    fn part2_example1() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_1)), "90,269,16");
+    }
+
+    #[test]
+    fn part2_example2() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_2)), "232,251,12");
     }
 }
