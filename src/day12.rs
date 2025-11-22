@@ -25,13 +25,15 @@ fn sum_of_pot_numbers_after(
     initial_state: &[Pot],
     notes: &HashMap<[Pot; 5], Pot>,
     generations_num: usize,
-) -> i32 {
+) -> i64 {
     use Pot::*;
 
     let mut state = VecDeque::from(initial_state.to_vec());
 
-    let mut shift = 0;
+    let mut shift: i64 = 0;
     let mut generation = 0;
+
+    let mut states = HashMap::from([(state.clone(), (shift, generation))]);
 
     while generation < generations_num {
         for _ in 0..4 {
@@ -59,17 +61,30 @@ fn sum_of_pot_numbers_after(
             }
         }
 
-        state = new_state;
-
-        generation += 1;
-
-        while state.front() == Some(&Empty) {
-            state.pop_front();
+        while new_state.front() == Some(&Empty) {
+            new_state.pop_front();
             shift -= 1;
         }
 
-        while state.back() == Some(&Empty) {
-            state.pop_back();
+        while new_state.back() == Some(&Empty) {
+            new_state.pop_back();
+        }
+
+        generation += 1;
+        state = new_state;
+
+        if states.contains_key(&state) {
+            let (prev_shift, prev_generation) = states.get(&state).unwrap();
+
+            let delta_shift = shift - *prev_shift;
+            let delta_generation = generation - *prev_generation;
+
+            let jump = (generations_num - generation) / delta_generation;
+
+            generation += jump * delta_generation;
+            shift += (jump as i64) * delta_shift;
+        } else {
+            states.insert(state.clone(), (shift, generation));
         }
     }
 
@@ -78,7 +93,7 @@ fn sum_of_pot_numbers_after(
         .enumerate()
         .filter_map(|(index, pot)| {
             if *pot == Plant {
-                Some(index as i32 - shift)
+                Some(index as i64 - shift)
             } else {
                 None
             }
@@ -87,12 +102,12 @@ fn sum_of_pot_numbers_after(
 }
 
 #[aoc(day12, part1)]
-fn part1((initial_state, notes): &(Vec<Pot>, HashMap<[Pot; 5], Pot>)) -> i32 {
+fn part1((initial_state, notes): &(Vec<Pot>, HashMap<[Pot; 5], Pot>)) -> i64 {
     sum_of_pot_numbers_after(initial_state, notes, 20)
 }
 
 #[aoc(day12, part2)]
-fn part2((initial_state, notes): &(Vec<Pot>, HashMap<[Pot; 5], Pot>)) -> i32 {
+fn part2((initial_state, notes): &(Vec<Pot>, HashMap<[Pot; 5], Pot>)) -> i64 {
     sum_of_pot_numbers_after(initial_state, notes, 50_000_000_000)
 }
 
