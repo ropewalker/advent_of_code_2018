@@ -126,6 +126,10 @@ fn part1((map, unit_starting_positions): &(Vec<Vec<Tile>>, Vec<(Coordinates, Rac
                 continue;
             }
 
+            if elves_count == 0 || goblins_count == 0 {
+                break 'main;
+            }
+
             let current_unit = units[*id];
             let current_unit_coordinates = unit_coordinates.get_mut(id).unwrap();
 
@@ -312,15 +316,8 @@ fn part1((map, unit_starting_positions): &(Vec<Vec<Tile>>, Vec<(Coordinates, Rac
                 .cmp(unit_coordinates.get(id2).unwrap())
         });
 
-        if elves_count == 0 || goblins_count == 0 {
-            break;
-        }
-
         full_rounds_count += 1;
     }
-
-    dbg!(full_rounds_count);
-    dbg!(&units);
 
     full_rounds_count * units.iter().map(|unit| unit.hit_points).sum::<usize>()
 }
