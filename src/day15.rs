@@ -1,5 +1,3 @@
-use crate::day15::Race::{Elf, Goblin};
-use crate::day15::Tile::OpenCavern;
 use aoc_runner_derive::{aoc, aoc_generator};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
@@ -10,7 +8,7 @@ enum Tile {
     OpenCavern,
 }
 
-const ATTACK_POWER: usize = 3;
+const DEFAULT_ATTACK_POWER: usize = 3;
 const STARTING_HIT_POINTS: usize = 200;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -93,7 +91,12 @@ struct PathNode {
 fn combat(
     map: &[Vec<Tile>],
     unit_starting_positions: &[(Coordinates, Race)],
+    elves_attack_power: usize,
+    short: bool,
 ) -> (Vec<Unit>, usize) {
+    use Race::*;
+    use Tile::*;
+
     let mut unit_coordinates: HashMap<usize, Coordinates> = unit_starting_positions
         .iter()
         .enumerate()
@@ -223,7 +226,13 @@ fn combat(
                     .find(|id| units[**id].hit_points == min_health)
                     .unwrap();
 
-                if units[*unit_to_attack].hit_points <= ATTACK_POWER {
+                let attack_power = if units[*unit_to_attack].race == Goblin {
+                    elves_attack_power
+                } else {
+                    DEFAULT_ATTACK_POWER
+                };
+
+                if units[*unit_to_attack].hit_points <= attack_power {
                     units[*unit_to_attack].hit_points = 0;
 
                     let vacant_coordinates = unit_coordinates.get(unit_to_attack).unwrap();
@@ -232,11 +241,15 @@ fn combat(
 
                     if units[*unit_to_attack].race == Elf {
                         elves_count -= 1;
+
+                        if short {
+                            return (units, full_rounds_count);
+                        }
                     } else {
                         goblins_count -= 1;
                     }
                 } else {
-                    units[*unit_to_attack].hit_points -= ATTACK_POWER;
+                    units[*unit_to_attack].hit_points -= attack_power;
                 }
             }
         }
@@ -250,9 +263,32 @@ fn combat(
 
 #[aoc(day15, part1)]
 fn part1((map, unit_starting_positions): &(Vec<Vec<Tile>>, Vec<(Coordinates, Race)>)) -> usize {
-    let (units, full_rounds_count) = combat(map, unit_starting_positions);
+    let (units, full_rounds_count) =
+        combat(map, unit_starting_positions, DEFAULT_ATTACK_POWER, false);
 
     full_rounds_count * units.iter().map(|unit| unit.hit_points).sum::<usize>()
+}
+
+#[aoc(day15, part2)]
+fn part2(
+    (map, unit_starting_positions): &(Vec<Vec<Tile>>, Vec<(Coordinates, Race)>),
+) -> Option<usize> {
+    use Race::*;
+
+    for attack_power in 4..=STARTING_HIT_POINTS {
+        let (units, full_rounds_count) = combat(map, unit_starting_positions, attack_power, true);
+
+        if !units
+            .iter()
+            .any(|unit| unit.race == Elf && unit.hit_points == 0)
+        {
+            return Some(
+                full_rounds_count * units.iter().map(|unit| unit.hit_points).sum::<usize>(),
+            );
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
@@ -337,5 +373,30 @@ mod tests {
     #[test]
     fn part1_example_6() {
         assert_eq!(part1(&parse_input(TEST_INPUT_6)), 18_740);
+    }
+
+    #[test]
+    fn part2_example_1() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_1)), Some(4_988));
+    }
+
+    #[test]
+    fn part2_example_2() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_3)), Some(31_284));
+    }
+
+    #[test]
+    fn part2_example_3() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_4)), Some(3_478));
+    }
+
+    #[test]
+    fn part2_example_4() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_5)), Some(6_474));
+    }
+
+    #[test]
+    fn part2_example_5() {
+        assert_eq!(part2(&parse_input(TEST_INPUT_6)), Some(1_140));
     }
 }
