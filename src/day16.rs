@@ -1,4 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use std::collections::{HashMap, HashSet};
 
 type Instruction = [usize; 4];
 type MemoryState = [usize; 4];
@@ -11,7 +12,7 @@ struct Sample {
     after: MemoryState,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 enum Opcode {
     Addr,
     Addi,
@@ -122,7 +123,7 @@ fn execute_instruction(
     result
 }
 
-fn count_possible_opcodes(sample: &Sample) -> usize {
+fn possible_opcodes(sample: &Sample) -> HashSet<Opcode> {
     use Opcode::*;
 
     [
@@ -133,15 +134,62 @@ fn count_possible_opcodes(sample: &Sample) -> usize {
     .filter(|opcode| {
         execute_instruction(&sample.before, opcode, &sample.instruction) == sample.after
     })
-    .count()
+    .collect::<HashSet<_>>()
 }
 
 #[aoc(day16, part1)]
 fn part1((samples, _program): &(Vec<Sample>, Program)) -> usize {
     samples
         .iter()
-        .filter(|sample| count_possible_opcodes(sample) >= 3)
+        .filter(|sample| possible_opcodes(sample).len() >= 3)
         .count()
+}
+
+#[aoc(day16, part2)]
+fn part2((samples, program): &(Vec<Sample>, Program)) -> usize {
+    let mut potential_opcodes = HashMap::with_capacity(16);
+
+    for sample in samples.iter() {
+        let mut possible_opcodes = possible_opcodes(sample);
+
+        if let Some(known_opcodes) = potential_opcodes.get(&sample.instruction[0]) {
+            possible_opcodes = possible_opcodes
+                .intersection(known_opcodes)
+                .cloned()
+                .collect();
+        }
+
+        potential_opcodes.insert(sample.instruction[0], possible_opcodes);
+    }
+
+    let mut definite_opcodes = HashMap::with_capacity(16);
+
+    while !potential_opcodes.is_empty() {
+        let extracted: HashMap<_, _> = potential_opcodes
+            .extract_if(|_, v| v.len() == 1)
+            .map(|(k, v)| (k, v.into_iter().next().unwrap()))
+            .collect();
+
+        for possible_opcodes in potential_opcodes.values_mut() {
+            for excluded_opcode in extracted.values() {
+                possible_opcodes.remove(excluded_opcode);
+            }
+        }
+
+        definite_opcodes.extend(extracted.into_iter());
+    }
+
+    let mut memory_state = [0, 0, 0, 0];
+
+    for instruction in program.iter() {
+        memory_state = execute_instruction(
+            &memory_state,
+            definite_opcodes.get(&instruction[0]).unwrap(),
+            instruction,
+        );
+    }
+
+    memory_state[0]
 }
 
 #[cfg(test)]
@@ -171,6 +219,6 @@ After:  [3, 2, 2, 1]";
 
         let sample = parser.parse(TEST_INPUT).unwrap();
 
-        assert_eq!(count_possible_opcodes(&sample), 3);
+        assert_eq!(possible_opcodes(&sample).len(), 3);
     }
 }
