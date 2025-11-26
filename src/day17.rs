@@ -1,7 +1,7 @@
 use crate::day17::VeinComponent::{Coordinate, Range};
 use aoc_runner_derive::{aoc, aoc_generator};
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 enum VeinComponent {
@@ -82,19 +82,26 @@ fn is_clay(
     false
 }
 
-fn pour_water(
+fn count_water_squares(
     starting_square: Coordinates,
     min_y: i32,
     max_y: i32,
     vertical_veins: &HashMap<i32, Vec<(i32, i32)>>,
     horizontal_veins: &mut HashMap<i32, Vec<(i32, i32)>>,
+    dry: bool,
 ) -> usize {
     let mut starting_points = vec![starting_square];
-    let mut reached_count = 0;
+    let mut reached = HashSet::new();
+
+    let mut still_water: HashSet<Coordinates> = HashSet::new();
 
     'main_loop: while let Some(mut current_square) = starting_points.pop() {
         if current_square.y >= min_y && current_square.y <= max_y {
-            reached_count += 1;
+            if !reached.contains(&current_square) {
+                reached.insert(current_square);
+            } else {
+                continue;
+            }
         }
 
         let mut next_square = (current_square.x, current_square.y + 1).into();
@@ -107,7 +114,11 @@ fn pour_water(
             }
 
             if current_square.y >= min_y {
-                reached_count += 1;
+                if !reached.contains(&current_square) {
+                    reached.insert(current_square);
+                } else {
+                    continue 'main_loop;
+                }
             }
 
             next_square = (current_square.x, current_square.y + 1).into();
@@ -119,6 +130,7 @@ fn pour_water(
         loop {
             let mut water_layer_left = current_square.x;
             let mut water_layer_right = current_square.x;
+            reached.insert(current_square);
 
             let mut left_square: Coordinates = (current_square.x - 1, current_square.y).into();
             let mut below_left_square = (left_square.x, left_square.y + 1).into();
@@ -130,7 +142,8 @@ fn pour_water(
                     left_wall = false;
                     break;
                 } else {
-                    reached_count += 1;
+                    reached.insert(left_square);
+
                     water_layer_left = left_square.x;
 
                     left_square = (left_square.x - 1, left_square.y).into();
@@ -148,7 +161,8 @@ fn pour_water(
                     right_wall = false;
                     break;
                 } else {
-                    reached_count += 1;
+                    reached.insert(right_square);
+
                     water_layer_right = right_square.x;
 
                     right_square = (right_square.x + 1, right_square.y).into();
@@ -161,6 +175,11 @@ fn pour_water(
                     .entry(current_square.y)
                     .or_default()
                     .push((water_layer_left, water_layer_right));
+
+                for x in water_layer_left..=water_layer_right {
+                    still_water.insert((x, current_square.y).into());
+                }
+
                 current_square = (current_square.x, current_square.y - 1).into();
             } else {
                 break;
@@ -168,11 +187,21 @@ fn pour_water(
         }
     }
 
-    reached_count
+    if dry {
+        still_water.len()
+    } else {
+        reached.len()
+    }
 }
 
-#[aoc(day17, part1)]
-fn part1(clay_veins: &[ClayVein]) -> usize {
+struct ClayVeinsMap {
+    vertical_veins: HashMap<i32, Vec<(i32, i32)>>,
+    horizontal_veins: HashMap<i32, Vec<(i32, i32)>>,
+    min_y: i32,
+    max_y: i32,
+}
+
+fn init_map(clay_veins: &[ClayVein]) -> ClayVeinsMap {
     use VeinComponent::*;
 
     let mut vertical_veins = HashMap::new();
@@ -213,12 +242,39 @@ fn part1(clay_veins: &[ClayVein]) -> usize {
         .max()
         .unwrap();
 
-    pour_water(
-        SPRING_COORDINATES,
+    ClayVeinsMap {
+        horizontal_veins,
+        vertical_veins,
         min_y,
         max_y,
-        &vertical_veins,
-        &mut horizontal_veins,
+    }
+}
+
+#[aoc(day17, part1)]
+fn part1(clay_veins: &[ClayVein]) -> usize {
+    let mut clay_veins_map = init_map(clay_veins);
+
+    count_water_squares(
+        SPRING_COORDINATES,
+        clay_veins_map.min_y,
+        clay_veins_map.max_y,
+        &clay_veins_map.vertical_veins,
+        &mut clay_veins_map.horizontal_veins,
+        false,
+    )
+}
+
+#[aoc(day17, part2)]
+fn part2(clay_veins: &[ClayVein]) -> usize {
+    let mut clay_veins_map = init_map(clay_veins);
+
+    count_water_squares(
+        SPRING_COORDINATES,
+        clay_veins_map.min_y,
+        clay_veins_map.max_y,
+        &clay_veins_map.vertical_veins,
+        &mut clay_veins_map.horizontal_veins,
+        true,
     )
 }
 
@@ -238,5 +294,10 @@ y=13, x=498..504";
     #[test]
     fn part1_example() {
         assert_eq!(part1(&parse_input(TEST_INPUT)), 57);
+    }
+
+    #[test]
+    fn part2_example() {
+        assert_eq!(part2(&parse_input(TEST_INPUT)), 29);
     }
 }
