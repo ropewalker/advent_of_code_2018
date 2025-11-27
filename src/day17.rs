@@ -106,7 +106,7 @@ fn count_water_squares(
 
         let mut next_square = (current_square.x, current_square.y + 1).into();
 
-        while !is_clay(&next_square, &vertical_veins, &horizontal_veins) {
+        while !is_clay(&next_square, vertical_veins, horizontal_veins) {
             current_square = next_square;
 
             if current_square.y > max_y {
