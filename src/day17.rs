@@ -1,4 +1,3 @@
-use crate::day17::VeinComponent::{Coordinate, Range};
 use aoc_runner_derive::{aoc, aoc_generator};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -46,6 +45,7 @@ const SPRING_COORDINATES: Coordinates = Coordinates { x: 500, y: 0 };
 
 #[aoc_generator(day17)]
 fn parse_input(input: &str) -> Vec<ClayVein> {
+    use VeinComponent::*;
     use aoc_parse::{parser, prelude::*};
 
     let parser = parser!(lines(
