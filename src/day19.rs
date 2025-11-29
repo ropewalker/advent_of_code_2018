@@ -61,18 +61,15 @@ fn parse_input(input: &str) -> Program {
     parser.parse(input).unwrap()
 }
 
-#[aoc(day19, part1)]
-fn part1(program: &Program) -> usize {
+fn execute_program(program: &Program, memory: &mut MemoryState) {
     use Opcode::*;
 
-    let mut memory: MemoryState = [0; 6];
     let mut ip_value = 0;
 
     while ip_value < program.instructions.len() {
         let instruction = &program.instructions[ip_value];
 
         memory[program.ip_bound_to] = ip_value;
-
         memory[instruction.3] = match instruction.0 {
             Addr => memory[instruction.1] + memory[instruction.2],
             Addi => memory[instruction.1] + instruction.2,
@@ -130,8 +127,43 @@ fn part1(program: &Program) -> usize {
 
         ip_value = memory[program.ip_bound_to] + 1;
     }
+}
+
+#[aoc(day19, part1)]
+fn part1(program: &Program) -> usize {
+    let mut memory: MemoryState = [0; 6];
+
+    execute_program(program, &mut memory);
 
     memory[0]
+}
+
+//This relies heavily on the structure of the specific input. I am unsure if it would work for all possible inputs.
+#[aoc(day19, part2)]
+fn part2(program: &Program) -> usize {
+    let mut memory: MemoryState = [1, 0, 0, 0, 0, 0];
+
+    let shortened_program = Program {
+        ip_bound_to: 2,
+        instructions: program.instructions[0..=33].to_vec(),
+    };
+
+    execute_program(&shortened_program, &mut memory);
+
+    let mut result = 0;
+    let large_number = memory[5];
+
+    for divisor in 1..=f32::sqrt(large_number as f32) as usize {
+        if large_number.is_multiple_of(divisor) {
+            result += divisor;
+
+            if divisor * divisor != large_number {
+                result += large_number / divisor;
+            }
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]
