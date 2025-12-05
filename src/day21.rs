@@ -138,31 +138,26 @@ fn execute_program(program: &Program, memory: &mut MemoryState, halt_at: Option<
 fn part1(program: &Program) -> usize {
     let mut memory: MemoryState = [0; 6];
 
-    execute_program(
-        program,
-        &mut memory,
-        program
-            .instructions
-            .iter()
-            .enumerate()
-            .find_map(|(ip_value, instruction)| {
-                if instruction.1 == 0
-                    && (instruction.0 == Gtri
-                        || instruction.0 == Gtrr
-                        || instruction.0 == Eqri
-                        || instruction.0 == Eqrr)
-                    || instruction.2 == 0
-                        && (instruction.0 == Gtir
-                            || instruction.0 == Gtrr
-                            || instruction.0 == Eqir
-                            || instruction.0 == Eqrr)
-                {
-                    Some(ip_value)
-                } else {
-                    None
-                }
-            }),
-    );
+    let halt_at = program
+        .instructions
+        .iter()
+        .enumerate()
+        .find_map(|(ip_value, instruction)| {
+            if (instruction.1 == 0 || instruction.2 == 0) && instruction.0 == Eqrr {
+                Some(ip_value)
+            } else {
+                None
+            }
+        });
 
-    memory[5]
+    execute_program(program, &mut memory, halt_at);
+
+    if let Some(ip_value) = halt_at {
+        match program.instructions[ip_value] {
+            (Eqrr, 0, x, _) | (Eqrr, x, 0, _) => return memory[x],
+            _ => unreachable!(),
+        }
+    }
+
+    memory[0]
 }
